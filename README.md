@@ -2,8 +2,10 @@
 
 A Slack-style **Threads** experience for [Buzz](https://github.com/block/buzz-app) desktop:
 
-- a **Threads** section in the Team sidebar, one row per thread (max 20);
-- a **Threads page** (the full card UI lands in a later release);
+- a **Threads** nav entry in the Messages sidebar group (beside Activity and
+  Drafts & Sent), with an unread-thread count badge;
+- a **Threads page** showing each thread as a card: the root message, its latest
+  replies, "Show N more replies", and an inline reply box;
 - **per-thread unread** state, read from Buzz's own unread engine.
 
 Threads you **started** (with ≥1 reply), **replied** in, were **@mentioned** in,
@@ -31,12 +33,15 @@ screen; the plugin reloads from the same folder.
 
 ## What you should see
 
-- A collapsible **Threads** section in the Team sidebar listing up to 20 threads
-  as `#channel · preview`, with an unread count on threads that have unread
-  replies. A header button opens the full page.
-- Selecting a row opens the **Threads** page with that thread targeted.
-- The page shows the full (un-capped) list of active threads, and
-  "Connecting…" until the relay session is ready.
+- A **Threads** entry in the Messages sidebar group, with a count badge showing
+  the number of threads that have unread replies (hidden when there are none or
+  when unread state is unknown). The host owns nav ordering, so Threads sits at
+  the end of that group, above the channel lists.
+- Opening **Threads** shows every active thread as a card, "Connecting…" until
+  the relay session is ready, or the empty state when there is nothing.
+- Each card's channel name opens the channel; **Open thread** opens the thread
+  in a side pane (falling back to opening it in the channel when the host has no
+  tab workspace).
 
 ## Development
 
@@ -57,9 +62,10 @@ postbuild step fails the build if `plugin.js` contains a top-level `import`, a
 ```
 src/index.ts             wiring + cleanup
 src/session.ts           tracks the ready relay connection; rebuilds the index on change
-src/thread-index.ts      thread list data (no React)
-src/sidebar.ts           sidebar section
-src/page/ThreadsPage.tsx page shell (card UI later)
+src/thread-index.ts      thread list data + unread-thread count (no React)
+src/badge.tsx            nav-entry unread count badge
+src/page/ThreadsPage.tsx page: the card list (optionally inside ui.Tabs)
+src/page/ThreadCard.tsx  one card: messages, "Show more", reply box, read tracking
 src/page/route.ts        page route { channel?, root? }
 src/buzz-types.ts        local structural mirrors of the Buzz plugin API
 src/constants.ts         MAX_ROWS=20, STALE_DAYS=14, PREVIEW_REPLIES=3
@@ -89,5 +95,9 @@ The Buzz plugin API is a preview; re-test after each Buzz update. See
   A static `session.observe` filter cannot express "replies to my posts"
   (it would need `#e` = dynamic root ids), so the unread projection is the
   primary source, mirroring the bundled Inbox.
-- **`sidebarSections` may be absent** on older hosts. The plugin then registers
-  the page as `primary: true` so it still has a navigation entry.
+- **Nav order is host policy.** `orderPages` in the host gives bundled pages
+  fixed slots and sorts external pages last, so Threads cannot be moved up the
+  group from a plugin.
+- **Side pane needs the host tab workspace.** "Open thread" uses
+  `conversation.ui.Tabs`, which only exists while a plugin (Channels) provides
+  it; without it the fallback opens the thread in the channel.

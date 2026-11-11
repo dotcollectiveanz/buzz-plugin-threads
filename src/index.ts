@@ -6,14 +6,19 @@
  * `ctx.effect`.
  */
 import { createThreadsRuntime } from "./session";
-import { createThreadsSidebar } from "./sidebar";
+import { createThreadsBadge } from "./badge";
 import { createThreadsPage } from "./page/ThreadsPage";
 import { isThreadsRoute } from "./page/route";
-import type { BuzzContext, SidebarSectionsLike } from "./buzz-types";
+import type { BuzzContext } from "./buzz-types";
 
-// Declare every required service; optional ones (`sidebarSections`) are read
-// with ctx.reflect instead of being listed here.
-export const inject = ["react", "relay", "pages", "navigation"];
+/**
+ * Nav icon: a monochrome chat bubble with two text lines, painted in
+ * `currentColor` so the host draws it as a theme-aware mask.
+ */
+const ICON =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00IDUuNUEyLjUgMi41IDAgMCAxIDYuNSAzaDExQTIuNSAyLjUgMCAwIDEgMjAgNS41djdBMi41IDIuNSAwIDAgMSAxNy41IDE1SDEwbC00IDN2LTNINi41QTIuNSAyLjUgMCAwIDEgNCAxMi41eiIvPjxwYXRoIGQ9Ik04IDhoOE04IDExaDUiLz48L3N2Zz4=";
+
+export const inject = ["react", "relay", "pages", "navigation", "conversation"];
 
 export function apply(ctx: BuzzContext): void {
   const React = ctx.react;
@@ -21,30 +26,17 @@ export function apply(ctx: BuzzContext): void {
   ctx.effect(() => {
     const runtime = createThreadsRuntime(ctx);
 
-    const sections = ctx.reflect.get("sidebarSections") as
-      | SidebarSectionsLike
-      | undefined;
-    const hasSidebar =
-      !!sections && typeof sections.register === "function";
-
     ctx.pages.register({
       id: "threads",
       title: "Threads",
-      component: createThreadsPage(React, runtime),
+      component: createThreadsPage(React, ctx, runtime),
       layout: "workspace",
-      // Fallback only: without a sidebar section the page needs a nav entry.
-      primary: !hasSidebar,
+      primary: true,
+      icon: ICON,
+      badge: createThreadsBadge(React, runtime),
       route: { version: 1, validate: isThreadsRoute },
     });
 
-    const sidebar = hasSidebar
-      ? createThreadsSidebar(React, ctx, runtime)
-      : undefined;
-    sidebar?.register();
-
-    return () => {
-      sidebar?.dispose();
-      runtime.dispose();
-    };
+    return () => runtime.dispose();
   });
 }

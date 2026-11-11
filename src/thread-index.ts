@@ -111,6 +111,19 @@ type RootRecord = {
 
 const keyOf = (channelId: string, rootId: string) => `${channelId}\u0000${rootId}`;
 
+/**
+ * The nav-entry badge: the number of listed threads that have unread replies.
+ * A `null` (unknown) or zero count is not unread; if nothing is known unread
+ * the result is `0`, which the caller renders as no badge.
+ */
+export function unreadThreadCount(entries: readonly ThreadEntry[]): number {
+  let count = 0;
+  for (const entry of entries) {
+    if (entry.unreadCount !== null && entry.unreadCount > 0) count++;
+  }
+  return count;
+}
+
 function hTag(tags: RelayEventLike["tags"]): string | undefined {
   const values = tags
     .filter((tag) => tag[0] === "h" && typeof tag[1] === "string")

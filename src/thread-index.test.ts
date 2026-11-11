@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createThreadIndex,
   resolveThreadRoot,
+  unreadThreadCount,
   type RelayEventLike,
   type ThreadEntry,
   type ThreadIndexOptions,
@@ -379,5 +380,42 @@ describe("channel access", () => {
     );
     index.computeNow();
     expect(ids(index.snapshot())).toEqual(["k2".repeat(32)]);
+  });
+});
+
+describe("unread thread count (nav badge)", () => {
+  function entry(unreadCount: number | null, rootId: string): ThreadEntry {
+    return {
+      channelId: "c1",
+      channelName: "channel",
+      rootId,
+      rootPreview: "",
+      rootAuthor: "",
+      lastActivityAt: BASE,
+      replyCount: null,
+      unreadCount,
+      reasons: ["replied"],
+    };
+  }
+
+  it("counts only threads with unread replies", () => {
+    expect(
+      unreadThreadCount([
+        entry(3, "a"),
+        entry(1, "b"),
+        entry(0, "c"),
+        entry(null, "d"),
+      ]),
+    ).toBe(2);
+  });
+
+  it("treats unknown (null) and zero as not unread", () => {
+    expect(
+      unreadThreadCount([entry(null, "a"), entry(0, "b"), entry(null, "c")]),
+    ).toBe(0);
+  });
+
+  it("is zero for an empty list", () => {
+    expect(unreadThreadCount([])).toBe(0);
   });
 });

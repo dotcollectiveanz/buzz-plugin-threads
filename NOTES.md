@@ -119,6 +119,9 @@ nonetheless specifies `session.observe` filters for the event sources; see
 
 ### `sidebarSections` registration — `src/features/channel-navigation/sidebar-sections-service.ts`
 
+> Historical: the plugin no longer registers a sidebar section (Part A replaced
+> it with a primary page). This shape is kept for reference only.
+
 Read with `ctx.reflect.get("sidebarSections")` (optional service; may be
 `undefined` on older hosts). Exact contribution shape:
 
@@ -288,7 +291,7 @@ scope?, origin?, ... }`; subscribe to rebuild on replacement. Only use when
 
 ---
 
-## Source wiring (planned; phase 2 → phase 3)
+## Source wiring (implemented)
 
 Scope §6 says: live via `session.observe`, mirroring Inbox — viewer replies
 (kind 9 with a NIP-10 root `e` tag, resolve the real root), viewer top-level posts
@@ -323,14 +326,70 @@ stays `null` (unknown) rather than a fabricated zero.
 
 ---
 
-## Build status (phases 0-3)
+## Build status (phases 0-4 + nav-entry change)
 
 - `pnpm typecheck` — clean.
-- `pnpm test` — 17 tests pass (`src/thread-index.test.ts`), no Buzz needed.
-- `pnpm build` — `dist/plugin.js` (~21 kB, single file) + `dist/manifest.json`;
+- `pnpm test` — 20 tests pass (`src/thread-index.test.ts`), no Buzz needed.
+- `pnpm build` — `dist/plugin.js` (~28 kB, single file) + `dist/manifest.json`;
   postbuild fails on any top-level `import`, `require(`, or `react/jsx-runtime`.
 - Output verified: one file, classic `React.createElement`, only
   `export { apply, inject }`, no CSS/assets.
+
+## Part A — nav entry replaced the sidebar section (feedback)
+
+Joel rejected the `sidebarSections` per-thread rows. Deleted `src/sidebar.ts`;
+the page is now registered `primary: true` (default sidebar placement) exactly
+like the bundled Activity page:
+
+```ts
+ctx.pages.register({
+  id: "threads", title: "Threads",
+  component: createThreadsPage(React, ctx, runtime),
+  layout: "workspace", primary: true,
+  icon: ICON,               // data:image/svg+xml;base64,… , currentColor mask
+  badge: createThreadsBadge(React, runtime),
+  route: { version: 1, validate: isThreadsRoute },
+});
+```
+
+- `icon` — a base64 `data:image/svg+xml` chat-bubble stroked with
+  `currentColor`; the host draws it as a theme-aware mask
+  (`src/features/pages/service.ts`, `src/app/shell/PageNavigation.tsx`).
+- `badge` — a no-props component (`src/badge.tsx`) counting threads with
+  `unreadCount > 0` via `unreadThreadCount`; renders a small pill
+  (`--accent-9` / `--accent-contrast` / `--radius-pill`) with
+  `aria-label="N unread threads"`; renders nothing when the count is 0 or the
+  connection is not ready. The host wraps it in `ContributionBoundary`
+  (fallback `null`), so a throw is contained.
+- Ordering: `orderPages` (`src/app/shell/presentation.ts`) gives bundled pages
+  fixed slots and sorts external pages last, so Threads sits at the end of the
+  Messages nav group. Not fixable from a plugin.
+
+## Part B — thread cards
+
+`src/page/ThreadsPage.tsx` lists all non-stale entries. When the host provides
+`conversation.ui.Tabs`, the list is the page's first tab and renders inside
+`<Tabs>`; otherwise it renders bare. `src/page/ThreadCard.tsx`:
+
+- allocates `session.thread(channelId, rootId)` only while near the viewport
+  (`IntersectionObserver`, `rootMargin: "200px 0px"`), disposes on leave/unmount;
+- body inside `ui.Conversation` (`threadId = rootId`) with the root + latest
+  `PREVIEW_REPLIES` (3) replies via `ui.Message`, "Show N more replies"
+  (reveals and `loadMore()`s), then footer `ui.Composer` with `threadRootId`;
+- read tracking: a second `IntersectionObserver` with `threshold: 1` plus
+  `document.hasFocus()`/visibility, 300 ms dwell,
+  `session.unread.reading(channelId, rootId).observe(visibleReplyIds)` then
+  `dispose()`. Opening the page alone marks nothing.
+- "Open thread" calls the `Tabs` render-prop `open({ channelId, threadId })`;
+  if there is no `Tabs` (or `open` returns false) it navigates to a
+  `{ kind: "conversation", scope, channelId, messageId: rootId, threadRootId: rootId }`
+  target. The channel name opens the channel conversation target.
+
+The `conversation-consumer` fixture (`tests/fixtures/conversation-consumer/plugin.ts`)
+was the reference for `ui.Conversation`/`ui.Message`/`ui.Composer`/`ui.Tabs`
+usage; `children` is passed as a prop object to `React.createElement`, not as a
+third argument.
+
 
 
 ---
@@ -342,8 +401,15 @@ stays `null` (unknown) rather than a fabricated zero.
   marker names the **canonical root**, not the direct parent. Our parser treats
   a `root`-marked or `reply`-marked `e` (and a single untagged `e`) as the root.
 - Whether `ctx.reflect.get("sidebarSections")` is present in Joel's installed
-  Buzz build (0.7.0). Code degrades to a `primary: true` page if absent.
+  Buzz build (0.7.0). No longer used after Part A; kept only as a historical
+  finding.
 - Whether `session.unread.inbox()`'s bounded evidence covers old threads — docs
   say bounded (≤4096 events / 8 MiB), so very old threads may be missing until
   new activity. Scope §11 already flags this.
 - Whether the installed host accepts `updates` in the manifest — we omit it.
+- The card UI's runtime behaviour inside Buzz is unverified (no local install):
+  the reply box, `loadMore`, side-pane `open`, and 300 ms read dwell were
+  typechecked and reasoned from source, not exercised in the app.
+- `ui.Message` renders the author name from its `profile` prop; the page
+  subscribes to `session.profiles` and passes it, but avatars/names for authors
+  without a loaded profile fall back to a pubkey prefix inside the host row.

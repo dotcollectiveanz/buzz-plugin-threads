@@ -11,14 +11,10 @@ import { createThreadIndex, type ThreadEntry, type ThreadIndex } from "./thread-
 import type {
   BuzzContext,
   EventDataLike,
-  OpenTarget,
   RelaySessionLike,
   RelaySnapshotLike,
   Unsubscribe,
 } from "./buzz-types";
-
-export const PLUGIN_ID = "au.com.dotcollective.threads";
-export const PAGE_ID = "threads";
 
 const EMPTY: readonly ThreadEntry[] = Object.freeze([]);
 
@@ -40,28 +36,8 @@ export type ThreadsRuntime = {
   getSnapshot(): ThreadsSnapshot;
   /** The live session while ready, for thread cards (phase 4). */
   session(): RelaySessionLike | undefined;
-  openTarget(channelId?: string, rootId?: string): OpenTarget;
-  openThread(channelId: string, rootId: string): void;
-  openAll(): void;
   dispose(): void;
 };
-
-/** The plugin-page target that opens the Threads page, optionally on a thread. */
-export function threadTarget(
-  channelId?: string,
-  rootId?: string,
-): OpenTarget {
-  const params: Record<string, string> = {};
-  if (channelId) params.channel = channelId;
-  if (rootId) params.root = rootId;
-  return {
-    version: 1,
-    kind: "plugin",
-    pluginId: PLUGIN_ID,
-    pageId: PAGE_ID,
-    ...(Object.keys(params).length ? { params } : {}),
-  };
-}
 
 function toConnection(snapshot: RelaySnapshotLike): ThreadsConnection {
   return {
@@ -245,15 +221,6 @@ export function createThreadsRuntime(ctx: BuzzContext): ThreadsRuntime {
     },
     getSnapshot: () => state,
     session: () => currentSession,
-    openTarget: threadTarget,
-    openThread(channelId: string, rootId: string) {
-      void ctx.navigation
-        .open(threadTarget(channelId, rootId))
-        .catch(() => {});
-    },
-    openAll() {
-      void ctx.navigation.open(threadTarget()).catch(() => {});
-    },
     dispose() {
       if (disposed) return;
       disposed = true;
