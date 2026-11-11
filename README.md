@@ -16,7 +16,7 @@ The plugin loads from the `dist/` folder, which is committed.
 Managed (recommended):
 
 ```
-buzz://plugin-install?repository=dotcollective%2Fbuzz-threads&ref=main&path=dist
+buzz://plugin-install?repository=dotcollectiveanz%2Fbuzz-threads&ref=main&path=dist
 ```
 
 Or install by hand the first time:

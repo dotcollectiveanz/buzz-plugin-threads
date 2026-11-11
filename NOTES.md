@@ -8,6 +8,11 @@
 - App version in that checkout: `src-tauri/tauri.conf.json` → `0.7.0`; package
   `buzz-foundation`, `pnpm@11.8.0`, Node >= 24.
 - Plugin id: `au.com.dotcollective.threads`. Local checkout: `~/dev/buzz-threads`.
+- GitHub repo: `dotcollectiveanz/buzz-threads` (private). The scope named
+  `dotcollective/buzz-threads`, but no GitHub account `dotcollective` exists and
+  the token (account `dotcollective-joel`) cannot see one; the accessible company
+  org is `dotcollectiveanz`. Install link updated to match; transfer if the org
+  name differs.
 
 The plugin API is a preview. Everything below is quoted from the checkout above;
 re-verify on each Buzz update.
