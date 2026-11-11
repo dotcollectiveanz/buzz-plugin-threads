@@ -1,0 +1,18 @@
+{
+  "name": "buzz-threads",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Slack-style Threads experience for Buzz desktop.",
+  "scripts": {
+    "build": "tsc --noEmit && vite build && node scripts/postbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}

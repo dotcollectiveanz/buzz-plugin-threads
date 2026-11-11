@@ -1,0 +1,10 @@
+{
+  "id": "au.com.dotcollective.threads",
+  "name": "Threads",
+  "apiVersion": 1,
+  "description": "A Slack-style Threads view for Buzz: a sidebar section, a Threads page, and per-thread unread state.",
+  "discovery": {
+    "category": "communication",
+    "tags": ["Essentials", "threads"]
+  }
+}
